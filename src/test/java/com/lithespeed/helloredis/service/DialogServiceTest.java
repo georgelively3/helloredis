@@ -66,8 +66,6 @@ class DialogServiceTest {
 
     @Test
     void getDialogByIdAndRequest_nullRequest_returnsEmpty() {
-        when(dialogRepository.findById(1)).thenReturn(Optional.of(new Dialog(1, "hello", "world")));
-
         assertThat(dialogService.getDialogByIdAndRequest(1, null)).isEmpty();
     }
 
