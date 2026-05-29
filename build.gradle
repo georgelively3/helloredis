@@ -1,0 +1,94 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.3.4'
+	id 'io.spring.dependency-management' version '1.1.6'
+}
+
+group = 'com.lithespeed'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+sourceSets {
+	karateTest {
+		java.srcDir 'src/karateTest/java'
+		resources.srcDir 'src/karateTest/resources'
+		compileClasspath += sourceSets.main.output
+		runtimeClasspath += sourceSets.main.output
+	}
+}
+
+configurations {
+	karateTestImplementation.extendsFrom testImplementation
+	karateTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	karateTestImplementation 'io.karatelabs:karate-junit5:1.4.1'
+	karateTestImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	karateTestImplementation 'org.testcontainers:junit-jupiter'
+	karateTestImplementation 'org.testcontainers:redis'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+// devTest: embedded Redis via Testcontainers, no external infrastructure needed
+tasks.register('devTest', Test) {
+	description = 'Runs Karate tests with embedded Redis (dev/local environment)'
+	group = 'verification'
+	testClassesDirs = sourceSets.karateTest.output.classesDirs
+	classpath = sourceSets.karateTest.runtimeClasspath
+	useJUnitPlatform()
+	include '**/DevKarateRunner.class'
+	shouldRunAfter 'test'
+}
+
+// intTest: real Redis expected; supply target via -PbaseUrl=http://...
+tasks.register('intTest', Test) {
+	description = 'Runs Karate tests against int environment (real Redis required)'
+	group = 'verification'
+	testClassesDirs = sourceSets.karateTest.output.classesDirs
+	classpath = sourceSets.karateTest.runtimeClasspath
+	useJUnitPlatform()
+	include '**/IntKarateRunner.class'
+	shouldRunAfter 'test'
+	systemProperty 'karate.env', 'int'
+	systemProperty 'baseUrl', project.findProperty('baseUrl') ?: 'http://localhost:8080'
+}
+
+// preprodTest: real Redis expected; supply target via -PbaseUrl=http://...
+tasks.register('preprodTest', Test) {
+	description = 'Runs Karate tests against preprod environment (real Redis required)'
+	group = 'verification'
+	testClassesDirs = sourceSets.karateTest.output.classesDirs
+	classpath = sourceSets.karateTest.runtimeClasspath
+	useJUnitPlatform()
+	include '**/PreprodKarateRunner.class'
+	shouldRunAfter 'test'
+	systemProperty 'karate.env', 'preprod'
+	systemProperty 'baseUrl', project.findProperty('baseUrl') ?: 'http://localhost:8080'
+}
