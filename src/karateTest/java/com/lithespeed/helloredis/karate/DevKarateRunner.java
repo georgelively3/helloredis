@@ -19,9 +19,8 @@ class DevKarateRunner {
 
     @Container
     @ServiceConnection
-    static GenericContainer<?> redis =
-            new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-                    .withExposedPorts(6379);
+    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+            .withExposedPorts(6379);
 
     @LocalServerPort
     int port;
