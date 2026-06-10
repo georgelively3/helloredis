@@ -1,6 +1,7 @@
 package com.lithespeed.helloredis.service;
 
 import com.lithespeed.helloredis.model.Dialog;
+import com.lithespeed.helloredis.model.DialogResponseDTO;
 import com.lithespeed.helloredis.repository.DialogRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,30 +44,33 @@ class DialogServiceTest {
 
     @Test
     void getDialogByIdAndRequest_matchingIdAndRequest_returnsDialog() {
-        Dialog dialog = new Dialog(1, "hello", "world");
-        when(dialogRepository.findById(1)).thenReturn(Optional.of(dialog));
+        when(dialogRepository.getDialogByIdAndRequest(1, "hello"))
+                .thenReturn(Optional.of(new DialogResponseDTO(1, "world")));
 
-        assertThat(dialogService.getDialogByIdAndRequest(1, "hello"))
-                .isPresent().contains(dialog);
+        DialogResponseDTO dto = dialogService.getDialogByIdAndRequest(1, "hello");
+
+        assertThat(dto).isNotNull();
+        assertThat(dto.getId()).isEqualTo(1);
+        assertThat(dto.getResponse()).isEqualTo("world");
     }
 
     @Test
     void getDialogByIdAndRequest_requestMismatch_returnsEmpty() {
-        when(dialogRepository.findById(1)).thenReturn(Optional.of(new Dialog(1, "hello", "world")));
+        when(dialogRepository.getDialogByIdAndRequest(1, "wrong")).thenReturn(Optional.empty());
 
-        assertThat(dialogService.getDialogByIdAndRequest(1, "wrong")).isEmpty();
+        assertThat(dialogService.getDialogByIdAndRequest(1, "wrong")).isNull();
     }
 
     @Test
     void getDialogByIdAndRequest_idNotFound_returnsEmpty() {
-        when(dialogRepository.findById(99)).thenReturn(Optional.empty());
+        when(dialogRepository.getDialogByIdAndRequest(99, "hello")).thenReturn(Optional.empty());
 
-        assertThat(dialogService.getDialogByIdAndRequest(99, "hello")).isEmpty();
+        assertThat(dialogService.getDialogByIdAndRequest(99, "hello")).isNull();
     }
 
     @Test
     void getDialogByIdAndRequest_nullRequest_returnsEmpty() {
-        assertThat(dialogService.getDialogByIdAndRequest(1, null)).isEmpty();
+        assertThat(dialogService.getDialogByIdAndRequest(1, null)).isNull();
     }
 
     @Test

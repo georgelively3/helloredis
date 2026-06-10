@@ -1,6 +1,7 @@
 package com.lithespeed.helloredis.controller;
 
 import com.lithespeed.helloredis.model.Dialog;
+import com.lithespeed.helloredis.model.DialogResponseDTO;
 import com.lithespeed.helloredis.service.DialogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,10 +28,12 @@ public class DialogController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get a dialog by id and request")
-    public ResponseEntity<Dialog> getDialog(@PathVariable int id, @RequestParam String request) {
-        return dialogService.getDialogByIdAndRequest(id, request)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<DialogResponseDTO> getDialog(@PathVariable int id, @RequestParam String request) {
+        DialogResponseDTO response = dialogService.getDialogByIdAndRequest(id, request);
+        if (response == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping

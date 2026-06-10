@@ -2,6 +2,7 @@ package com.lithespeed.helloredis.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lithespeed.helloredis.model.Dialog;
+import com.lithespeed.helloredis.model.DialogResponseDTO;
 import com.lithespeed.helloredis.service.DialogService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,8 +54,8 @@ class DialogControllerTest {
 
     @Test
     void getDialog_found_returnsOk() throws Exception {
-        Dialog dialog = new Dialog(1, "hello", "world");
-        when(dialogService.getDialogByIdAndRequest(1, "hello")).thenReturn(Optional.of(dialog));
+        DialogResponseDTO dto = new DialogResponseDTO(1, "world");
+        when(dialogService.getDialogByIdAndRequest(1, "hello")).thenReturn(dto);
 
         mockMvc.perform(get("/api/dialogs/1").param("request", "hello"))
                 .andExpect(status().isOk())
@@ -63,7 +64,7 @@ class DialogControllerTest {
 
     @Test
     void getDialog_notFound_returns404() throws Exception {
-        when(dialogService.getDialogByIdAndRequest(99, "missing")).thenReturn(Optional.empty());
+        when(dialogService.getDialogByIdAndRequest(99, "missing")).thenReturn(null);
 
         mockMvc.perform(get("/api/dialogs/99").param("request", "missing"))
                 .andExpect(status().isNotFound());
@@ -75,8 +76,8 @@ class DialogControllerTest {
         when(dialogService.createDialog(any(Dialog.class))).thenReturn(dialog);
 
         mockMvc.perform(post("/api/dialogs")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dialog)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dialog)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(1));
     }
@@ -87,8 +88,8 @@ class DialogControllerTest {
         when(dialogService.updateDialog(eq(1), any(Dialog.class))).thenReturn(Optional.of(updated));
 
         mockMvc.perform(put("/api/dialogs/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updated)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(updated)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.request").value("updated request"));
     }
@@ -98,8 +99,8 @@ class DialogControllerTest {
         when(dialogService.updateDialog(eq(99), any(Dialog.class))).thenReturn(Optional.empty());
 
         mockMvc.perform(put("/api/dialogs/99")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(new Dialog())))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new Dialog())))
                 .andExpect(status().isNotFound());
     }
 

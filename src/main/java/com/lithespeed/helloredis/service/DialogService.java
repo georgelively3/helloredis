@@ -1,6 +1,7 @@
 package com.lithespeed.helloredis.service;
 
 import com.lithespeed.helloredis.model.Dialog;
+import com.lithespeed.helloredis.model.DialogResponseDTO;
 import com.lithespeed.helloredis.repository.DialogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,13 +21,12 @@ public class DialogService {
         return dialogRepository.findAll();
     }
 
-    public Optional<Dialog> getDialogByIdAndRequest(int id, String request) {
+    public DialogResponseDTO getDialogByIdAndRequest(int id, String request) {
         if (request == null) {
             log.warn("getDialogByIdAndRequest called with null request for id={}", id);
-            return Optional.empty();
+            return null;
         }
-        return dialogRepository.findById(id)
-                .filter(dialog -> request.equals(dialog.getRequest()));
+        return dialogRepository.getDialogByIdAndRequest(id, request).orElse(null);
     }
 
     public Dialog createDialog(Dialog dialog) {

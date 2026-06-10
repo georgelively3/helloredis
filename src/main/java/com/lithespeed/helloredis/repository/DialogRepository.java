@@ -2,6 +2,7 @@ package com.lithespeed.helloredis.repository;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lithespeed.helloredis.model.Dialog;
+import com.lithespeed.helloredis.model.DialogResponseDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.HashOperations;
@@ -37,6 +38,16 @@ public class DialogRepository {
             return Optional.empty();
         }
         return Optional.of(objectMapper.convertValue(val, Dialog.class));
+    }
+
+    public Optional<DialogResponseDTO> getDialogByIdAndRequest(int id, String request) {
+        if (request == null) {
+            return Optional.empty();
+        }
+
+        return findById(id)
+                .filter(dialog -> request.equals(dialog.getRequest()))
+                .map(dialog -> new DialogResponseDTO(dialog.getId(), dialog.getResponse()));
     }
 
     public Dialog save(Dialog dialog) {
