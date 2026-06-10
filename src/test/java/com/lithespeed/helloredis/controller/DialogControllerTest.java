@@ -71,19 +71,30 @@ class DialogControllerTest {
     }
 
     @Test
-    void createDialog_returnsCreated() throws Exception {
+    void createDialog_returnsOkWithMessage() throws Exception {
         Dialog dialog = new Dialog(1, "hello", "world");
         when(dialogService.createDialog(any(Dialog.class))).thenReturn(dialog);
 
         mockMvc.perform(post("/api/dialogs")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(dialog)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(1));
+                .andExpect(status().isOk())
+                .andExpect(content().string("Dialog created with id=1"));
     }
 
     @Test
-    void updateDialog_found_returnsOk() throws Exception {
+    void createDialog_serviceReturnsNull_returns500() throws Exception {
+        when(dialogService.createDialog(any(Dialog.class))).thenReturn(null);
+
+        mockMvc.perform(post("/api/dialogs")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new Dialog())))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string("Failed to create dialog"));
+    }
+
+    @Test
+    void updateDialog_found_returnsOkWithMessage() throws Exception {
         Dialog updated = new Dialog(1, "updated request", "updated response");
         when(dialogService.updateDialog(eq(1), any(Dialog.class))).thenReturn(Optional.of(updated));
 
@@ -91,32 +102,35 @@ class DialogControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(updated)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.request").value("updated request"));
+                .andExpect(content().string("Dialog updated with id=1"));
     }
 
     @Test
-    void updateDialog_notFound_returns404() throws Exception {
+    void updateDialog_notFound_returns404WithMessage() throws Exception {
         when(dialogService.updateDialog(eq(99), any(Dialog.class))).thenReturn(Optional.empty());
 
         mockMvc.perform(put("/api/dialogs/99")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(new Dialog())))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("Dialog not found with id=99"));
     }
 
     @Test
-    void deleteDialog_found_returnsNoContent() throws Exception {
+    void deleteDialog_found_returnsOkWithMessage() throws Exception {
         when(dialogService.deleteDialog(1)).thenReturn(true);
 
         mockMvc.perform(delete("/api/dialogs/1"))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isOk())
+                .andExpect(content().string("Dialog deleted with id=1"));
     }
 
     @Test
-    void deleteDialog_notFound_returns404() throws Exception {
+    void deleteDialog_notFound_returns404WithMessage() throws Exception {
         when(dialogService.deleteDialog(99)).thenReturn(false);
 
         mockMvc.perform(delete("/api/dialogs/99"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(content().string("Dialog not found with id=99"));
     }
 }
