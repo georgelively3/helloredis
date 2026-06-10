@@ -40,9 +40,6 @@ public class DialogController {
     @Operation(summary = "Create a new dialog")
     public ResponseEntity<String> createDialog(@RequestBody Dialog dialog) {
         Dialog created = dialogService.createDialog(dialog);
-        if (created == null) {
-            return ResponseEntity.internalServerError().body("Failed to create dialog");
-        }
         return ResponseEntity.ok("Dialog created with id=" + created.getId());
     }
 

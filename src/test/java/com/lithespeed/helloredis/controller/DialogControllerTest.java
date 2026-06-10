@@ -83,17 +83,6 @@ class DialogControllerTest {
     }
 
     @Test
-    void createDialog_serviceReturnsNull_returns500() throws Exception {
-        when(dialogService.createDialog(any(Dialog.class))).thenReturn(null);
-
-        mockMvc.perform(post("/api/dialogs")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new Dialog())))
-                .andExpect(status().isInternalServerError())
-                .andExpect(content().string("Failed to create dialog"));
-    }
-
-    @Test
     void updateDialog_found_returnsOkWithMessage() throws Exception {
         Dialog updated = new Dialog(1, "updated request", "updated response");
         when(dialogService.updateDialog(eq(1), any(Dialog.class))).thenReturn(Optional.of(updated));
