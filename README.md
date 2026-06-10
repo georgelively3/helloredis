@@ -1,6 +1,6 @@
 # helloredis
 
-A reference Spring Boot application demonstrating how to integrate Redis using Spring Data Redis with the `@RedisHash` / `CrudRepository` approach.
+A reference Spring Boot application showing the minimum steps required to integrate Redis using Spring Data Redis. The business domain (a `Dialog` entity) is intentionally simple — the goal is to demonstrate the Redis wiring pattern, not the domain logic.
 
 ---
 
@@ -22,21 +22,20 @@ A reference Spring Boot application demonstrating how to integrate Redis using S
 src/
   main/
     java/.../
-      config/         RedisConfig.java          — enables Redis repositories
-      model/          Dialog.java               — @RedisHash entity
-                      DialogResponseDTO.java     — API response shape
-      repository/     DialogRepository.java      — CrudRepository interface
-      service/        DialogService.java
-      controller/     DialogController.java
+      config/       RedisConfig.java      — enables Redis repositories
+      model/        YourEntity.java       — @RedisHash entity
+      repository/   YourRepository.java  — CrudRepository interface
+      service/      YourService.java
+      controller/   YourController.java
     resources/
-      application.yml                            — Redis connection config
+      application.yml                    — Redis connection config
   test/
     java/.../
-      controller/     DialogControllerTest.java  — MockMvc unit tests
-      service/        DialogServiceTest.java     — Mockito unit tests
+      controller/   YourControllerTest.java  — MockMvc unit tests
+      service/      YourServiceTest.java     — Mockito unit tests
   karateTest/
-    java/.../karate/  DevKarateRunner.java       — integration tests (Testcontainers)
-    resources/karate/ dialog.feature
+    java/.../karate/  DevKarateRunner.java   — integration tests (Testcontainers)
+    resources/karate/ your.feature
 ```
 
 ---
@@ -50,7 +49,7 @@ dependencies {
 }
 ```
 
-The `spring-boot-starter-data-redis` dependency pulls in Lettuce (the default Redis client) and all Spring Data Redis support.
+`spring-boot-starter-data-redis` pulls in Lettuce (the default Redis client) and all Spring Data Redis support. No additional client configuration is required for standard use.
 
 ---
 
@@ -65,17 +64,17 @@ spring:
       password: ${REDIS_PASSWORD:}
 ```
 
-Connection values are read from environment variables, with sensible local defaults. Never hardcode these values.
+Read connection values from environment variables, with sensible local defaults. Never hardcode these.
 
-| Environment variable | Default     | Purpose              |
-|----------------------|-------------|----------------------|
-| `REDIS_HOST`         | `localhost` | Redis server host    |
-| `REDIS_PORT`         | `6379`      | Redis server port    |
-| `REDIS_PASSWORD`     | *(empty)*   | Redis auth password  |
+| Environment variable | Default     | Purpose             |
+|----------------------|-------------|---------------------|
+| `REDIS_HOST`         | `localhost` | Redis server host   |
+| `REDIS_PORT`         | `6379`      | Redis server port   |
+| `REDIS_PASSWORD`     | *(empty)*   | Redis auth password |
 
 ---
 
-## Step 3 — Enable Redis repositories (`RedisConfig.java`)
+## Step 3 — Enable Redis repositories
 
 ```java
 @Configuration
@@ -84,105 +83,101 @@ public class RedisConfig {
 }
 ```
 
-`@EnableRedisRepositories` activates Spring Data Redis repository support, the equivalent of `@EnableJpaRepositories` for JPA. This is all the configuration required when using `@RedisHash`.
+`@EnableRedisRepositories` activates Spring Data Redis repository support — equivalent to `@EnableJpaRepositories` for JPA. This is the only configuration class required when using `@RedisHash`.
 
 ---
 
-## Step 4 — Annotate the model (`Dialog.java`)
+## Step 4 — Annotate your entity
 
 ```java
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@RedisHash("dialogs")          // stores under the "dialogs" hash key namespace
-public class Dialog implements Serializable {
+@RedisHash("your_entities")        // namespace for keys in Redis
+public class YourEntity implements Serializable {
 
-    @Id                        // marks the primary key; drives key generation
+    @Id                            // primary key; drives key generation
     private int id;
-    private String request;
-    private String response;
+
+    private String fieldOne;
+    private String fieldTwo;
 }
 ```
 
 Key points:
 
-- `@RedisHash("dialogs")` — Spring Data Redis stores each entity as a Redis hash at the key `dialogs:<id>`. It also maintains an index set at `dialogs` containing all known ids.
-- `@Id` — required; tells Spring Data which field is the primary key. Supported types: `String`, `int`/`Integer`, `long`/`Long`.
-- `implements Serializable` — recommended for Redis entities.
-- All fields are stored. Jackson annotations (`@JsonView`, `@JsonIgnoreProperties`) are ignored by Redis serialization; they only apply to HTTP JSON responses.
+- **`@RedisHash("your_entities")`** — each instance is stored as a Redis hash at the key `your_entities:<id>`. Spring Data also maintains an index set at `your_entities` containing all known ids.
+- **`@Id`** — required. Supported types: `String`, `int`/`Integer`, `long`/`Long`.
+- **`implements Serializable`** — recommended.
+- All fields are stored regardless of any Jackson annotations (`@JsonView`, `@JsonIgnoreProperties` etc.), which only affect HTTP JSON serialization, not Redis storage.
 
 ### Optional: TTL (time-to-live)
 
-To expire all records in the hash after a fixed duration:
-
 ```java
-@RedisHash(value = "dialogs", timeToLive = 86400)  // seconds — 24 hours
-public class Dialog implements Serializable { ... }
+@RedisHash(value = "your_entities", timeToLive = 86400)  // seconds — 24 hours
+public class YourEntity implements Serializable { ... }
 ```
 
-Each entity key is set to expire independently. When the TTL elapses, Redis removes the hash entry automatically.
+Each entity key expires independently. Redis removes it automatically when the TTL elapses.
 
 ---
 
-## Step 5 — Implement the repository (`DialogRepository.java`)
+## Step 5 — Define the repository
 
 ```java
 @Repository
-public interface DialogRepository extends CrudRepository<Dialog, Integer> {
+public interface YourRepository extends CrudRepository<YourEntity, Integer> {
 }
 ```
 
-`CrudRepository` provides `save`, `findById`, `findAll`, `existsById`, `deleteById`, and `count` — no implementation code required. Spring Data Redis generates it at startup.
+`CrudRepository` provides `save`, `findById`, `findAll`, `existsById`, `deleteById`, and `count` with no implementation code. Spring Data Redis generates the implementation at startup.
 
 ---
 
-## Step 6 — Service layer (`DialogService.java`)
+## Step 6 — Service layer
 
 ```java
 @Service
 @RequiredArgsConstructor
-@Slf4j
-public class DialogService {
+public class YourService {
 
-    private final DialogRepository dialogRepository;
+    private final YourRepository yourRepository;
 
-    public List<Dialog> getAllDialogs() {
-        return StreamSupport.stream(dialogRepository.findAll().spliterator(), false).toList();
+    public List<YourEntity> getAll() {
+        // CrudRepository.findAll() returns Iterable — convert with StreamSupport
+        return StreamSupport.stream(yourRepository.findAll().spliterator(), false).toList();
     }
 
-    public DialogResponseDTO getDialogByIdAndRequest(int id, String request) {
-        if (request == null) {
-            log.warn("getDialogByIdAndRequest called with null request for id={}", id);
-            return null;
+    public Optional<YourEntity> getById(int id) {
+        return yourRepository.findById(id);
+    }
+
+    public YourEntity create(YourEntity entity) {
+        return yourRepository.save(entity);
+    }
+
+    public Optional<YourEntity> update(int id, YourEntity updated) {
+        if (!yourRepository.existsById(id)) {
+            return Optional.empty();
         }
-        return dialogRepository.findById(id)
-                .filter(dialog -> request.equals(dialog.getRequest()))
-                .map(dialog -> new DialogResponseDTO(dialog.getId(), dialog.getResponse()))
-                .orElse(null);
+        updated.setId(id);
+        return Optional.of(yourRepository.save(updated));
     }
-    ...
+
+    public boolean delete(int id) {
+        if (!yourRepository.existsById(id)) {
+            return false;
+        }
+        yourRepository.deleteById(id);
+        return true;
+    }
 }
 ```
 
 Notes:
-
-- `CrudRepository.findAll()` returns `Iterable<Dialog>`, not `List`. Use `StreamSupport.stream(...)` to convert.
-- The service owns the business rule "request must match" — the repository is kept clean.
-- `DialogResponseDTO` projects only the fields the API caller needs (`id` + `response`), decoupling the Redis entity shape from the API contract.
-
----
-
-## REST API
-
-| Method | Path                        | Description                              |
-|--------|-----------------------------|------------------------------------------|
-| GET    | `/api/dialogs`              | Return all dialogs                       |
-| GET    | `/api/dialogs/{id}?request=` | Return response if id + request match   |
-| POST   | `/api/dialogs`              | Create a dialog                          |
-| PUT    | `/api/dialogs/{id}`         | Update a dialog by id                    |
-| DELETE | `/api/dialogs/{id}`         | Delete a dialog by id                    |
-
-Swagger UI is available at `http://localhost:8080/swagger-ui.html` when the app is running.
+- `CrudRepository.findAll()` returns `Iterable<T>`, not `List<T>`. Use `StreamSupport.stream(...)` to convert.
+- Keep business logic in the service. The repository should remain a plain `CrudRepository` interface unless you need custom query methods.
+- Consider a dedicated response DTO to decouple the Redis entity shape from the API contract (see `DialogResponseDTO` in this project for an example).
 
 ---
 
@@ -219,7 +214,7 @@ REDIS_HOST=my-redis-host REDIS_PORT=6380 gradle bootRun
 gradle test
 ```
 
-The unit tests use Mockito to mock `DialogRepository`. Redis is never contacted.
+Mock `YourRepository` with Mockito. Redis is never contacted. See `DialogServiceTest` and `DialogControllerTest` for examples.
 
 ### Integration tests (embedded Redis via Testcontainers — requires Docker)
 
@@ -227,7 +222,7 @@ The unit tests use Mockito to mock `DialogRepository`. Redis is never contacted.
 gradle devTest
 ```
 
-`DevKarateRunner` spins up a real Redis container using Testcontainers, starts the Spring Boot app on a random port, and runs the Karate feature scenarios end-to-end. Docker must be running.
+`DevKarateRunner` spins up a real Redis container, starts the Spring Boot app on a random port, and runs Karate feature scenarios end-to-end. Docker must be running.
 
 ### Integration tests against a deployed environment
 
@@ -236,7 +231,7 @@ gradle intTest -PbaseUrl=http://your-int-host
 gradle preprodTest -PbaseUrl=http://your-preprod-host
 ```
 
-These require a live Redis instance accessible to the target environment.
+These target a live environment with a real Redis instance.
 
 ---
 
@@ -244,8 +239,8 @@ These require a live Redis instance accessible to the target environment.
 
 | Decision | Rationale |
 |---|---|
-| `@RedisHash` + `CrudRepository` | Less code, per-entity TTL support, idiomatic Spring Data |
-| Env-var-based connection config | No hardcoded credentials; works across local/int/preprod |
-| `DialogResponseDTO` | Decouples the Redis entity from the API response shape |
-| Testcontainers for integration tests | No external Redis dependency in CI; reproducible |
-| Mockito unit tests for service/controller | Fast feedback; repository behaviour is covered by integration tests |
+| `@RedisHash` + `CrudRepository` | Minimal code; per-entity TTL support; idiomatic Spring Data |
+| Env-var-based connection config | No hardcoded credentials; works across local / int / preprod |
+| Response DTO | Decouples the Redis entity shape from the API response contract |
+| Testcontainers for integration tests | No external Redis dependency in CI; reproducible across machines |
+| Mockito unit tests for service/controller | Fast feedback; no infrastructure needed |
