@@ -17,17 +17,22 @@ import java.io.Serializable;
 @RedisHash("dialogs")
 public class Dialog implements Serializable {
 
-    public interface RequestView {}
-    public interface ResponseView {}
-    public interface RequestResponseView {}
+    public interface RequestView {
+    }
 
-    @JsonView({RequestView.class, ResponseView.class, RequestResponseView.class})
+    public interface ResponseView {
+    }
+
+    public interface RequestResponseView {
+    }
+
+    @JsonView({ RequestView.class, ResponseView.class, RequestResponseView.class })
     @Id
     private int id;
 
-    @JsonView({RequestView.class, RequestResponseView.class})
+    @JsonView({ RequestView.class, RequestResponseView.class })
     private String request;
 
-    @JsonView({ResponseView.class, RequestResponseView.class})
+    @JsonView({ ResponseView.class, RequestResponseView.class })
     private String response;
 }
