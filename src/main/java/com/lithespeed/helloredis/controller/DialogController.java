@@ -11,6 +11,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
+
+import static java.util.Map.entry;
+
+import java.util.LinkedHashMap;
 
 @RestController
 @RequestMapping("/api/dialogs")
@@ -19,6 +25,24 @@ import java.util.List;
 public class DialogController {
 
     private final DialogService dialogService;
+
+    @Value("${aws.elasticache.enabled:NOT_SET}")
+    private String elasticacheEnabled;
+
+    @Value("${aws.elasticache.cluster-endpoint:NOT_SET}")
+    private String clusterEndpoint;
+
+    @Value("${aws.elasticache.cluster-name:NOT_SET}")
+    private String clusterName;
+
+    @Value("${aws.elasticache.region:NOT_SET}")
+    private String region;
+
+    @Value("${aws.elasticache.iam-username:NOT_SET}")
+    private String iamUsername;
+
+    @Value("${aws.elasticache.port:NOT_SET}")
+    private String port;
 
     @GetMapping
     @Operation(summary = "Get all dialogs")
@@ -58,5 +82,17 @@ public class DialogController {
             return ResponseEntity.ok("Dialog deleted with id=" + id);
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Dialog not found with id=" + id);
+    }
+
+    @GetMapping("/debug/config")
+    public Map<String, String> getConfig() {
+        Map<String, String> config = new LinkedHashMap<>();
+        config.put("aws.elasticache.enabled", elasticacheEnabled);
+        config.put("aws.elasticache.cluster-endpoint", clusterEndpoint);
+        config.put("aws.elasticache.cluster-name", clusterName);
+        config.put("aws.elasticache.region", region);
+        config.put("aws.elasticache.iam-username", iamUsername);
+        config.put("aws.elasticache.port", port);
+        return config;
     }
 }

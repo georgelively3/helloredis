@@ -17,18 +17,10 @@ configurations {
 	compileOnly {
 		extendsFrom annotationProcessor
 	}
-}
-
-sourceSets {
-	karateTest {
-		java.srcDir 'src/karateTest/java'
-		resources.srcDir 'src/karateTest/resources'
-		compileClasspath += sourceSets.main.output
-		runtimeClasspath += sourceSets.main.output
+	all {
+		// Prevents duplicate log4j-to-slf4j binding if anything pulls it in
+		exclude group: 'org.apache.logging.log4j', module: 'log4j-to-slf4j'
 	}
-}
-
-configurations {
 	karateTestImplementation.extendsFrom testImplementation
 	karateTestRuntimeOnly.extendsFrom testRuntimeOnly
 }
